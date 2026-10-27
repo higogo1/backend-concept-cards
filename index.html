@@ -1,0 +1,815 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="description" content="백엔드 필수 개념 68개를 플래시카드, 4지선다 퀴즈, 오답노트로 외우는 학습 사이트">
+<title>백엔드 개념 카드</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+  /* Layout: one 880px study column; tab bar switches four tools; content sits on dividers, only the flashcard and quiz options are raised objects */
+  :root {
+    --bg: #eef1f5;
+    --surface: #ffffff;
+    --surface-2: #e4f1ef;
+    --ink: #14202e;
+    --muted: #5a6777;
+    --line: #d3dae3;
+    --accent: #0f6f69;
+    --accent-ink: #ffffff;
+    --accent-soft: #d6ecea;
+    --ok: #177a3e;
+    --ok-soft: #dcf1e3;
+    --bad: #b8430f;
+    --bad-soft: #fbe5d9;
+    --shadow: 0 1px 2px rgba(20, 32, 46, .06), 0 8px 24px rgba(20, 32, 46, .07);
+    --font-body: "IBM Plex Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif;
+    --font-mono: "JetBrains Mono", ui-monospace, "Cascadia Mono", Consolas, "Malgun Gothic", monospace;
+    --step--1: .8125rem;
+    --step-0: 1rem;
+    --step-1: 1.1875rem;
+    --step-2: 1.5rem;
+    --step-3: 2.125rem;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #10161d; --surface: #18212b; --surface-2: #14302f; --ink: #e6ebf0; --muted: #98a4b1;
+      --line: #2a3542; --accent: #45c2b5; --accent-ink: #062523; --accent-soft: #173c3a;
+      --ok: #5fd38a; --ok-soft: #173826; --bad: #f59a62; --bad-soft: #3d2416;
+      --shadow: 0 1px 2px rgba(0, 0, 0, .3), 0 8px 24px rgba(0, 0, 0, .25);
+      color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #10161d; --surface: #18212b; --surface-2: #14302f; --ink: #e6ebf0; --muted: #98a4b1;
+    --line: #2a3542; --accent: #45c2b5; --accent-ink: #062523; --accent-soft: #173c3a;
+    --ok: #5fd38a; --ok-soft: #173826; --bad: #f59a62; --bad-soft: #3d2416;
+    --shadow: 0 1px 2px rgba(0, 0, 0, .3), 0 8px 24px rgba(0, 0, 0, .25);
+    color-scheme: dark;
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: var(--step-0);
+    line-height: 1.6;
+    padding-left: max(16px, env(safe-area-inset-left, 0px));
+    padding-right: max(16px, env(safe-area-inset-right, 0px));
+  }
+  .wrap { max-width: 880px; margin: 0 auto; padding-block: 28px 56px; display: flex; flex-direction: column; gap: 22px; }
+  h1, h2, h3 { margin: 0; text-wrap: balance; line-height: 1.3; }
+  p { margin: 0; }
+  button, select, input { font: inherit; color: inherit; }
+  button { cursor: pointer; }
+  :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .mono { font-family: var(--font-mono); }
+  .muted { color: var(--muted); }
+  .label { font-family: var(--font-mono); font-size: var(--step--1); letter-spacing: .04em; color: var(--muted); }
+
+  /* Header */
+  header { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 12px 24px; }
+  .brand { display: flex; flex-direction: column; gap: 4px; }
+  .brand .prompt { font-family: var(--font-mono); font-size: var(--step--1); color: var(--accent); }
+  .brand h1 { font-size: var(--step-3); font-weight: 700; letter-spacing: -.01em; }
+  .stats { display: flex; gap: 20px; flex-wrap: wrap; }
+  .stat { display: flex; flex-direction: column; }
+  .stat b { font-family: var(--font-mono); font-size: var(--step-1); font-weight: 600; font-variant-numeric: tabular-nums; }
+  .stat span { font-size: var(--step--1); color: var(--muted); }
+
+  /* Tabs */
+  nav { display: flex; gap: 4px; border-bottom: 1px solid var(--line); overflow-x: auto; }
+  nav button {
+    background: none; border: 0; padding: 10px 14px 12px; font-weight: 500; color: var(--muted);
+    border-bottom: 2px solid transparent; margin-bottom: -1px; white-space: nowrap; display: flex; align-items: center; gap: 8px;
+  }
+  nav button[aria-selected="true"] { color: var(--ink); border-bottom-color: var(--accent); }
+  .count { font-family: var(--font-mono); font-size: .75rem; padding: 1px 7px; border-radius: 999px; background: var(--line); color: var(--ink); font-variant-numeric: tabular-nums; }
+  .count.hot { background: var(--bad-soft); color: var(--bad); }
+
+  /* Shared controls */
+  .toolbar { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+  .field { display: flex; flex-direction: column; gap: 4px; }
+  select, input[type="search"] {
+    background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; min-width: 0;
+  }
+  input[type="search"] { width: 100%; }
+  .btn {
+    border: 1px solid var(--line); background: var(--surface); border-radius: 8px; padding: 9px 16px; font-weight: 500;
+    display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  }
+  .btn:hover { border-color: var(--muted); }
+  .btn.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+  .btn.ok { background: var(--ok-soft); border-color: transparent; color: var(--ok); }
+  .btn.bad { background: var(--bad-soft); border-color: transparent; color: var(--bad); }
+  .btn:disabled { opacity: .45; cursor: default; }
+  .btn kbd { font-family: var(--font-mono); font-size: .75rem; opacity: .75; }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; }
+  .chip { border: 1px solid var(--line); background: transparent; border-radius: 999px; padding: 4px 12px; font-size: var(--step--1); }
+  .chip[aria-pressed="true"] { background: var(--ink); border-color: var(--ink); color: var(--bg); }
+  .tag { font-family: var(--font-mono); font-size: .75rem; padding: 2px 8px; border-radius: 6px; white-space: nowrap; }
+  .tag.cat { background: var(--accent-soft); color: var(--accent); }
+  .tag.bad { background: var(--bad-soft); color: var(--bad); }
+  .tag.ok { background: var(--ok-soft); color: var(--ok); }
+  .empty { padding: 32px 0; color: var(--muted); display: flex; flex-direction: column; gap: 12px; align-items: flex-start; }
+
+  /* Learn list */
+  .learn-top { display: grid; grid-template-columns: 1fr; gap: 12px; }
+  .terms { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: 1fr; }
+  @media (min-width: 720px) { .terms { grid-template-columns: 1fr 1fr; column-gap: 32px; } }
+  .term { padding: 16px 0; border-bottom: 1px solid var(--line); display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+  .term-head { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+  .term h3 { font-size: var(--step-1); font-weight: 700; }
+  .term .en { font-family: var(--font-mono); font-size: var(--step--1); color: var(--muted); }
+  .term .ex { font-size: var(--step--1); color: var(--muted); }
+  .term .ex::before { content: "예) "; color: var(--accent); font-weight: 500; }
+
+  /* Flashcard */
+  .progress { height: 4px; background: var(--line); border-radius: 2px; overflow: hidden; }
+  .progress > div { height: 100%; background: var(--accent); transition: width .25s; }
+  .card-meta { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+  .flip { perspective: 1400px; background: none; border: 0; padding: 0; width: 100%; text-align: left; display: block; }
+  .flip-inner { display: grid; transition: transform .5s cubic-bezier(.3, .7, .2, 1); transform-style: preserve-3d; }
+  .flip.flipped .flip-inner { transform: rotateY(180deg); }
+  .face {
+    grid-area: 1 / 1; backface-visibility: hidden; -webkit-backface-visibility: hidden;
+    min-height: 300px; padding: 28px clamp(20px, 5vw, 40px); border-radius: 16px; border: 1px solid var(--line);
+    background: var(--surface); box-shadow: var(--shadow); display: flex; flex-direction: column; gap: 14px; justify-content: center;
+  }
+  .face.back { transform: rotateY(180deg); background: var(--surface-2); }
+  .face .side { font-family: var(--font-mono); font-size: var(--step--1); color: var(--muted); display: flex; justify-content: space-between; gap: 8px; }
+  .face .big { font-size: var(--step-3); font-weight: 700; line-height: 1.25; }
+  .face .def { font-size: var(--step-1); line-height: 1.65; }
+  .face .ex { font-size: var(--step--1); color: var(--muted); border-top: 1px dashed var(--line); padding-top: 12px; }
+  .face .hint { font-size: var(--step--1); color: var(--muted); }
+  .answer-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .answer-row .btn { padding: 14px; }
+
+  /* Quiz */
+  .panel { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 22px; display: flex; flex-direction: column; gap: 16px; }
+  .setup-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; }
+  .q-prompt { display: flex; flex-direction: column; gap: 8px; }
+  .q-prompt .big { font-size: var(--step-2); font-weight: 700; }
+  .q-prompt .def { font-size: var(--step-1); line-height: 1.65; }
+  .options { display: grid; gap: 8px; }
+  .opt {
+    display: grid; grid-template-columns: auto 1fr; gap: 12px; align-items: start; text-align: left;
+    background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px;
+  }
+  .opt:hover:not(:disabled) { border-color: var(--accent); }
+  .opt .n { font-family: var(--font-mono); font-size: var(--step--1); color: var(--muted); padding-top: 2px; }
+  .opt .t { min-width: 0; }
+  .opt .t small { display: block; font-family: var(--font-mono); color: var(--muted); font-size: .75rem; }
+  .opt:disabled { cursor: default; }
+  .opt.right { border-color: var(--ok); background: var(--ok-soft); }
+  .opt.wrong { border-color: var(--bad); background: var(--bad-soft); }
+  .feedback { border-left: 3px solid var(--line); padding: 4px 0 4px 14px; display: flex; flex-direction: column; gap: 6px; }
+  .feedback.ok { border-left-color: var(--ok); }
+  .feedback.bad { border-left-color: var(--bad); }
+  .status { font-family: var(--font-mono); font-weight: 600; font-size: var(--step--1); }
+  .feedback.ok .status { color: var(--ok); }
+  .feedback.bad .status { color: var(--bad); }
+  .score { font-family: var(--font-mono); font-size: var(--step-3); font-weight: 600; font-variant-numeric: tabular-nums; }
+  .result-list { list-style: none; margin: 0; padding: 0; }
+  .result-list li { padding: 12px 0; border-bottom: 1px solid var(--line); display: flex; flex-direction: column; gap: 4px; }
+
+  /* Review */
+  .review-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 12px; }
+  .note-list { list-style: none; margin: 0; padding: 0; }
+  .note { padding: 16px 0; border-bottom: 1px solid var(--line); display: grid; grid-template-columns: 1fr auto; gap: 6px 16px; align-items: start; }
+  .note > div { min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+  .note h3 { font-size: var(--step-1); }
+  .streak { display: inline-flex; gap: 3px; vertical-align: middle; }
+  .streak i { width: 8px; height: 8px; border-radius: 50%; background: var(--line); display: inline-block; }
+  .streak i.on { background: var(--ok); }
+
+  footer { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 10px; align-items: center; font-size: var(--step--1); color: var(--muted); border-top: 1px solid var(--line); padding-top: 16px; }
+  .link-btn { background: none; border: 0; padding: 0; color: var(--muted); text-decoration: underline; text-underline-offset: 3px; font-size: var(--step--1); }
+  .link-btn.danger { color: var(--bad); }
+  .toast {
+    position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(20px + env(safe-area-inset-bottom, 0px));
+    background: var(--ink); color: var(--bg); padding: 10px 16px; border-radius: 10px; font-size: var(--step--1);
+    max-width: calc(100% - 32px); box-shadow: var(--shadow);
+  }
+  @media (max-width: 480px) {
+    .face { min-height: 260px; }
+    .face .big { font-size: var(--step-2); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .flip-inner, .progress > div { transition: none; }
+  }
+  html { color-scheme: light; padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
+  body { margin: 0; }
+  img { max-width: 100%; }
+  [hidden] { display: none !important; }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header>
+    <div class="brand">
+      <span class="prompt">GET /backend/concepts</span>
+      <h1>백엔드 개념 카드</h1>
+    </div>
+    <div class="stats" aria-label="학습 현황">
+      <div class="stat"><b id="sTotal">0</b><span>전체 개념</span></div>
+      <div class="stat"><b id="sSeen">0</b><span>학습한 개념</span></div>
+      <div class="stat"><b id="sAcc">–</b><span>정답률</span></div>
+      <div class="stat"><b id="sNote">0</b><span>오답노트</span></div>
+    </div>
+  </header>
+
+  <nav role="tablist" aria-label="학습 도구">
+    <button role="tab" id="tab-learn" data-view="learn">개념 익히기</button>
+    <button role="tab" id="tab-cards" data-view="cards">카드 뒤집기</button>
+    <button role="tab" id="tab-quiz" data-view="quiz">퀴즈</button>
+    <button role="tab" id="tab-review" data-view="review">오답노트 <span class="count" id="noteBadge">0</span></button>
+  </nav>
+
+  <!-- 개념 익히기 -->
+  <section id="view-learn" role="tabpanel" aria-labelledby="tab-learn">
+    <div class="learn-top">
+      <input type="search" id="q" placeholder="용어나 설명으로 찾기 (예: 트랜잭션, 401, Redis)" aria-label="개념 검색">
+      <div class="chips" id="catChips" role="group" aria-label="분야"></div>
+    </div>
+    <ul class="terms" id="termList"></ul>
+  </section>
+
+  <!-- 카드 뒤집기 -->
+  <section id="view-cards" role="tabpanel" aria-labelledby="tab-cards" hidden>
+    <div style="display:flex;flex-direction:column;gap:16px">
+      <div class="toolbar">
+        <div class="field"><label class="label" for="cardScope">범위</label><select id="cardScope"></select></div>
+        <div class="field"><label class="label" for="cardDir">앞면</label>
+          <select id="cardDir">
+            <option value="t2d">용어 보고 설명 떠올리기</option>
+            <option value="d2t">설명 보고 용어 떠올리기</option>
+          </select>
+        </div>
+        <div class="field"><span class="label">&nbsp;</span><button class="btn" id="cardRestart">섞어서 새로 시작</button></div>
+      </div>
+      <div id="cardStage"></div>
+    </div>
+  </section>
+
+  <!-- 퀴즈 -->
+  <section id="view-quiz" role="tabpanel" aria-labelledby="tab-quiz" hidden>
+    <div id="quizStage"></div>
+  </section>
+
+  <!-- 오답노트 -->
+  <section id="view-review" role="tabpanel" aria-labelledby="tab-review" hidden>
+    <div id="reviewStage"></div>
+  </section>
+
+  <footer>
+    <span id="saveState">기록은 이 브라우저에 저장됩니다</span>
+    <span><button class="link-btn" id="resetBtn">학습 기록 초기화</button></span>
+  </footer>
+</div>
+<div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
+
+<script>
+const CATS = [
+  { id: 'net', name: 'HTTP·네트워크' },
+  { id: 'api', name: 'API 설계' },
+  { id: 'db', name: '데이터베이스' },
+  { id: 'sec', name: '인증·보안' },
+  { id: 'arch', name: '아키텍처' },
+  { id: 'ops', name: '성능·운영' },
+];
+
+const TERMS = [
+  // HTTP·네트워크
+  { id: 'http', c: 'net', t: 'HTTP', en: 'HyperText Transfer Protocol', d: '클라이언트가 요청을 보내고 서버가 응답을 돌려주는 웹의 기본 통신 규약. 각 요청은 이전 요청을 기억하지 않는다.', x: '요청 = 메서드 + 경로 + 헤더 + 본문, 응답 = 상태 코드 + 헤더 + 본문' },
+  { id: 'https', c: 'net', t: 'HTTPS·TLS', en: 'HTTP over TLS', d: '웹 통신을 암호화해 도청과 변조를 막는 방식. 인증서로 서버가 진짜인지 확인한다.', x: '기본 포트 443, 인증서는 Let\'s Encrypt 같은 인증 기관(CA)이 발급' },
+  { id: 'dns', c: 'net', t: 'DNS', en: 'Domain Name System', d: 'example.com 같은 사람이 읽는 주소를 서버의 IP 주소로 바꿔 주는 분산 시스템.', x: 'A 레코드(IPv4), CNAME(별칭). 조회 결과는 TTL 동안 캐시됨' },
+  { id: 'tcpudp', c: 'net', t: 'TCP와 UDP', en: 'Transport Layer Protocols', d: '연결을 맺고 순서와 도착을 보장하는 방식과, 보장 없이 빠르게 보내는 방식의 두 가지 전송 계층 프로토콜.', x: '웹·DB 연결은 앞의 것, 실시간 영상·게임·DNS 조회는 주로 뒤의 것' },
+  { id: 'status', c: 'net', t: 'HTTP 상태 코드', en: 'Status Code', d: '요청 처리 결과를 세 자리 숫자로 알려 주는 값. 앞자리로 성공, 리다이렉트, 클라이언트 오류, 서버 오류를 구분한다.', x: '200 OK, 201 Created, 301, 400, 401, 403, 404, 500, 503' },
+  { id: 'methods', c: 'net', t: 'HTTP 메서드', en: 'GET · POST · PUT · PATCH · DELETE', d: '요청이 자원에 대해 어떤 동작을 원하는지 나타내는 동사. 조회, 생성, 전체 수정, 부분 수정, 삭제를 구분한다.', x: 'GET /users/7 조회, POST /users 생성, PATCH /users/7 일부 수정' },
+  { id: 'idempotent', c: 'net', t: '멱등성', en: 'Idempotency', d: '같은 요청을 여러 번 보내도 한 번 보낸 것과 서버 상태가 같은 성질. 실패한 요청을 재시도해도 안전한지 판단하는 기준이다.', x: 'GET·PUT·DELETE는 이래야 하고 POST는 보통 아니다. 결제 API는 Idempotency-Key 헤더로 보장' },
+  { id: 'cookie', c: 'net', t: '쿠키', en: 'Cookie', d: '서버가 응답 헤더로 브라우저에 저장시키고, 이후 같은 사이트로 요청할 때마다 브라우저가 자동으로 붙여 보내는 작은 데이터.', x: 'Set-Cookie 헤더. HttpOnly(JS 접근 차단), Secure(HTTPS만), SameSite(교차 사이트 전송 제한)' },
+  { id: 'cors', c: 'net', t: 'CORS', en: 'Cross-Origin Resource Sharing', d: '다른 출처(도메인·포트·프로토콜)의 웹 페이지가 API를 호출해도 되는지 서버가 응답 헤더로 허락하는 브라우저 보안 규칙.', x: 'Access-Control-Allow-Origin 헤더. 복잡한 요청은 OPTIONS 사전 요청(preflight)을 먼저 보냄' },
+  { id: 'lb', c: 'net', t: '로드 밸런서', en: 'Load Balancer', d: '들어오는 요청을 여러 서버에 나눠 보내 부하를 분산하고, 응답하지 않는 서버는 대상에서 빼 주는 장치.', x: '라운드 로빈, 최소 연결 방식. AWS ALB, Nginx, HAProxy' },
+  { id: 'proxy', c: 'net', t: '리버스 프록시', en: 'Reverse Proxy', d: '클라이언트의 요청을 대신 받아 뒤쪽 서버로 전달하는 서버. TLS 처리, 압축, 캐시, 경로별 라우팅을 맡는다.', x: 'Nginx가 443 포트로 받아 내부 3000번 포트의 Node 앱으로 전달' },
+  { id: 'cdn', c: 'net', t: 'CDN', en: 'Content Delivery Network', d: '이미지·JS 같은 정적 파일을 사용자와 가까운 지역의 서버에 복사해 두고 거기서 응답하는 네트워크.', x: 'Cloudflare, CloudFront. Cache-Control 헤더로 보관 기간 지정' },
+  { id: 'websocket', c: 'net', t: 'WebSocket', en: 'Full-duplex Connection', d: '한 번 맺은 연결을 유지하며 서버와 클라이언트가 언제든 서로 메시지를 보낼 수 있는 프로토콜.', x: '채팅, 실시간 알림, 시세. HTTP Upgrade 요청으로 시작' },
+
+  // API 설계
+  { id: 'rest', c: 'api', t: 'REST', en: 'Representational State Transfer', d: '자원을 URL로 표현하고 HTTP 메서드로 행위를 나타내는 API 설계 스타일.', x: 'GET /orders/12, DELETE /orders/12. 동사는 URL이 아니라 메서드로 표현' },
+  { id: 'graphql', c: 'api', t: 'GraphQL', en: 'Query Language for APIs', d: '클라이언트가 필요한 필드만 골라 하나의 엔드포인트에 질의하는 API 방식. 너무 많거나 적게 받아 오는 문제를 줄인다.', x: 'query { user(id: 7) { name posts { title } } }' },
+  { id: 'grpc', c: 'api', t: 'gRPC', en: 'Remote Procedure Call', d: 'Protocol Buffers로 정의한 함수를 HTTP/2 위에서 원격 호출하는 프레임워크. 바이너리라 빠르고 타입이 엄격하다.', x: '마이크로서비스 내부 통신에 자주 사용. .proto 파일에서 코드 생성' },
+  { id: 'gateway', c: 'api', t: 'API 게이트웨이', en: 'API Gateway', d: '여러 백엔드 서비스 앞에 놓인 단일 진입점. 인증, 요청 제한, 라우팅, 로깅을 한곳에서 처리한다.', x: 'Kong, AWS API Gateway, Spring Cloud Gateway' },
+  { id: 'pagination', c: 'api', t: '페이지네이션', en: 'Pagination', d: '많은 결과를 한 번에 주지 않고 나눠서 응답하는 방식. 번호(offset) 방식과 마지막 항목 기준(cursor) 방식이 있다.', x: '?page=3&size=20 또는 ?after=100. 커서 방식은 중간에 데이터가 추가돼도 중복·누락이 적음' },
+  { id: 'ratelimit', c: 'api', t: '레이트 리미팅', en: 'Rate Limiting', d: '일정 시간 동안 한 클라이언트가 보낼 수 있는 요청 수를 제한해 남용과 과부하를 막는 기법.', x: '분당 60회를 넘으면 429 Too Many Requests. 토큰 버킷 알고리즘' },
+  { id: 'webhook', c: 'api', t: '웹훅', en: 'Webhook', d: '어떤 사건이 생기면 서비스가 미리 등록된 URL로 HTTP 요청을 보내 알려 주는 방식. 계속 물어보는 대신 통보를 받는다.', x: '결제 완료 시 PG사가 POST /webhooks/payment 호출. 서명 검증 필수' },
+  { id: 'versioning', c: 'api', t: 'API 버저닝', en: 'API Versioning', d: '기존 클라이언트를 깨뜨리지 않고 API를 바꾸기 위해 버전을 나눠 운영하는 방법.', x: '/v1/users → /v2/users, 또는 헤더에 버전 명시' },
+  { id: 'serialize', c: 'api', t: '직렬화', en: 'Serialization', d: '메모리 안의 객체를 JSON이나 바이트처럼 전송·저장할 수 있는 형식으로 바꾸는 것. 받는 쪽에서는 반대 방향으로 되살린다.', x: 'JSON.stringify / JSON.parse, Jackson, Protobuf' },
+
+  // 데이터베이스
+  { id: 'rdbms', c: 'db', t: '관계형 데이터베이스', en: 'RDBMS', d: '데이터를 행과 열로 된 테이블에 저장하고, 테이블 사이 관계를 키로 연결해 SQL로 다루는 데이터베이스.', x: 'PostgreSQL, MySQL, Oracle' },
+  { id: 'nosql', c: 'db', t: 'NoSQL', en: 'Not only SQL', d: '고정된 테이블 스키마 대신 문서·키-값·컬럼·그래프 같은 모델로 저장하는 데이터베이스. 수평 확장에 유리한 경우가 많다.', x: 'MongoDB(문서), Redis(키-값), Cassandra(컬럼), Neo4j(그래프)' },
+  { id: 'keys', c: 'db', t: '기본 키와 외래 키', en: 'Primary Key · Foreign Key', d: '행을 유일하게 식별하는 열과, 다른 테이블의 그 식별자를 가리켜 관계를 맺는 열.', x: 'orders.user_id → users.id' },
+  { id: 'index', c: 'db', t: '인덱스', en: 'Index', d: '특정 열의 값을 정렬된 별도 구조(B-Tree 등)로 저장해 검색을 빠르게 하는 장치. 대신 쓰기가 느려지고 저장 공간을 더 쓴다.', x: 'CREATE INDEX idx_users_email ON users(email); → WHERE email = ? 조회가 빨라짐' },
+  { id: 'transaction', c: 'db', t: '트랜잭션', en: 'Transaction', d: '여러 쿼리를 하나의 작업 단위로 묶어, 전부 성공하면 반영(commit)하고 하나라도 실패하면 모두 되돌리는(rollback) 것.', x: '계좌 이체: 출금과 입금이 함께 성공하거나 함께 취소' },
+  { id: 'acid', c: 'db', t: 'ACID', en: 'Atomicity · Consistency · Isolation · Durability', d: '데이터베이스 작업 단위가 안전하게 처리되려면 지켜야 하는 네 가지 성질: 원자성, 일관성, 격리성, 지속성.', x: '커밋된 데이터는 서버가 꺼져도 남아야 함(지속성)' },
+  { id: 'isolation', c: 'db', t: '격리 수준', en: 'Isolation Level', d: '동시에 실행되는 작업들이 서로의 중간 결과를 얼마나 볼 수 있는지 정하는 설정. 높을수록 안전하지만 느리다.', x: 'READ UNCOMMITTED < READ COMMITTED < REPEATABLE READ < SERIALIZABLE' },
+  { id: 'normalization', c: 'db', t: '정규화', en: 'Normalization', d: '중복 데이터를 줄이고 수정·삭제 시 생기는 이상 현상을 막기 위해 테이블을 나누는 설계 과정. 조회 성능 때문에 일부러 중복을 허용하기도 한다.', x: '주문 테이블에 고객 주소를 반복 저장하지 않고 고객 테이블로 분리' },
+  { id: 'join', c: 'db', t: '조인', en: 'JOIN', d: '두 개 이상의 테이블을 공통 열로 연결해 한 번에 조회하는 SQL 연산.', x: 'INNER(양쪽에 다 있는 행만), LEFT(왼쪽 테이블 행은 모두)' },
+  { id: 'nplus1', c: 'db', t: 'N+1 문제', en: 'N+1 Query Problem', d: '목록을 한 번 조회한 뒤 각 항목의 연관 데이터를 항목마다 따로 조회해, 쿼리가 항목 수만큼 더 실행되는 성능 문제.', x: '게시글 100개 + 작성자 조회 100번. JOIN, fetch join, 배치 로딩으로 해결' },
+  { id: 'orm', c: 'db', t: 'ORM', en: 'Object-Relational Mapping', d: '데이터베이스 테이블을 프로그래밍 언어의 객체와 연결해, SQL을 직접 쓰지 않고 데이터를 다루게 해 주는 도구.', x: 'JPA/Hibernate, Prisma, Django ORM, SQLAlchemy' },
+  { id: 'migration', c: 'db', t: '마이그레이션', en: 'Schema Migration', d: '데이터베이스 스키마 변경을 버전이 붙은 파일로 기록하고 순서대로 적용하거나 되돌리는 방법.', x: '20260301_add_phone_to_users.sql, Flyway, Prisma Migrate' },
+  { id: 'pool', c: 'db', t: '커넥션 풀', en: 'Connection Pool', d: '데이터베이스 연결을 미리 여러 개 만들어 두고, 요청마다 빌려 쓰고 반납하는 방식. 연결을 새로 만드는 비용을 줄인다.', x: 'HikariCP. 크기를 넘는 요청은 빈 연결이 생길 때까지 대기' },
+  { id: 'replication', c: 'db', t: '레플리케이션', en: 'Replication', d: '같은 데이터를 여러 데이터베이스 서버에 복제해 두는 것. 읽기 분산과 장애 대비에 쓴다.', x: 'Primary는 쓰기, Replica는 읽기. 복제 지연(lag) 주의' },
+  { id: 'sharding', c: 'db', t: '샤딩', en: 'Sharding', d: '하나의 큰 데이터를 기준 키에 따라 여러 데이터베이스로 나눠 저장하는 수평 분할 방식.', x: 'user_id % 4 결과로 4개 DB에 분산' },
+  { id: 'deadlock', c: 'db', t: '데드락', en: 'Deadlock', d: '두 작업이 서로 상대가 잡은 자원(락)을 기다리며 둘 다 영원히 진행하지 못하는 상태.', x: 'A는 행1→행2, B는 행2→행1 순서로 잠금. 잠금 순서를 통일해 예방' },
+
+  // 인증·보안
+  { id: 'authnz', c: 'sec', t: '인증과 인가', en: 'Authentication · Authorization', d: '사용자가 누구인지 확인하는 것과, 확인된 사용자가 무엇을 할 수 있는지 판단하는 것.', x: '로그인 안 됨 → 401, 로그인했지만 권한 없음 → 403' },
+  { id: 'session', c: 'sec', t: '세션', en: 'Session', d: '로그인 상태를 서버에 저장하고, 클라이언트에는 그것을 찾을 식별자만 쿠키로 주는 방식.', x: '서버 메모리나 Redis에 sid → user 저장. 서버가 여러 대면 공유 저장소 필요' },
+  { id: 'jwt', c: 'sec', t: 'JWT', en: 'JSON Web Token', d: '사용자 정보와 만료 시간을 담고 서명한 토큰. 서버가 로그인 상태를 저장하지 않고 서명만 검증해 사용자를 확인한다.', x: 'header.payload.signature, Authorization: Bearer <token>. 탈취되면 만료 전까지 유효' },
+  { id: 'oauth', c: 'sec', t: 'OAuth 2.0', en: 'Delegated Authorization', d: '사용자가 비밀번호를 넘기지 않고, 다른 서비스가 자기 계정 자원에 접근하도록 허락하는 표준.', x: '"Google로 로그인". 인가 코드 → 액세스 토큰 교환' },
+  { id: 'hashing', c: 'sec', t: '비밀번호 해싱', en: 'Password Hashing', d: '비밀번호를 되돌릴 수 없는 값으로 변환해 저장하는 것. 솔트를 섞고 일부러 느린 알고리즘을 쓴다.', x: 'bcrypt, Argon2. MD5·SHA-1만 쓰는 것은 금지' },
+  { id: 'sqli', c: 'sec', t: 'SQL 인젝션', en: 'SQL Injection', d: '사용자 입력이 쿼리 문자열에 그대로 들어가, 공격자가 원하는 쿼리를 실행하게 되는 취약점.', x: "' OR 1=1 -- . Prepared Statement(파라미터 바인딩)로 방어" },
+  { id: 'xss', c: 'sec', t: 'XSS', en: 'Cross-Site Scripting', d: '공격자가 심은 스크립트가 다른 사용자의 브라우저에서 실행되는 취약점.', x: '댓글에 <script> 삽입. 출력할 때 이스케이프, CSP 헤더로 방어' },
+  { id: 'csrf', c: 'sec', t: 'CSRF', en: 'Cross-Site Request Forgery', d: '로그인된 사용자의 브라우저가 공격자 사이트를 거쳐 의도하지 않은 요청을 보내게 만드는 공격.', x: '전용 토큰 검증, SameSite 쿠키로 방어' },
+  { id: 'secrets', c: 'sec', t: '시크릿 관리', en: 'Environment Variables · Secrets', d: '비밀번호, API 키, 접속 주소 같은 민감한 설정을 코드에 넣지 않고 실행 환경에서 주입하는 방식.', x: '.env 파일은 Git에 올리지 않음. Vault, AWS Secrets Manager' },
+
+  // 아키텍처
+  { id: 'monolith', c: 'arch', t: '모놀리식', en: 'Monolithic Architecture', d: '모든 기능을 하나의 코드베이스와 하나의 배포 단위로 묶은 구조. 처음엔 단순하지만 커지면 변경과 확장이 어렵다.', x: '쇼핑몰의 회원·주문·결제가 한 앱, 한 DB' },
+  { id: 'msa', c: 'arch', t: '마이크로서비스', en: 'Microservices', d: '기능을 작은 서비스로 나눠 각각 독립적으로 개발·배포·확장하는 구조. 서비스 간 통신과 운영이 복잡해진다.', x: '주문·결제·회원 서비스가 각자 DB를 가짐' },
+  { id: 'layered', c: 'arch', t: '계층형 구조', en: 'Layered Architecture', d: '코드를 요청 처리, 비즈니스 로직, 데이터 접근처럼 역할별 층으로 나누고 위에서 아래로만 의존하게 하는 구조.', x: 'Controller → Service → Repository' },
+  { id: 'mq', c: 'arch', t: '메시지 큐', en: 'Message Queue', d: '보내는 쪽과 받는 쪽 사이에 메시지를 쌓아 두는 중간 저장소. 작업을 비동기로 처리하고 서비스 간 결합을 줄인다.', x: 'RabbitMQ, Kafka, SQS. 회원가입 후 환영 메일 발송을 넘김' },
+  { id: 'eda', c: 'arch', t: '이벤트 기반 아키텍처', en: 'Event-Driven Architecture', d: '서비스들이 서로 직접 호출하는 대신, "무슨 일이 일어났다"는 알림을 발행하고 구독하며 협력하는 구조.', x: 'OrderPlaced 발행 → 재고, 알림, 정산 서비스가 각자 처리' },
+  { id: 'stateless', c: 'arch', t: '무상태', en: 'Stateless', d: '서버가 요청 사이에 클라이언트 상태를 기억하지 않아, 어느 서버가 요청을 받아도 같은 결과를 내는 성질. 서버 대수를 늘리기 위한 전제 조건이다.', x: '세션을 서버 메모리 대신 Redis나 토큰에 둠' },
+  { id: 'cap', c: 'arch', t: 'CAP 정리', en: 'CAP Theorem', d: '네트워크가 끊겨 노드가 나뉘면, 분산 시스템은 일관성과 가용성 중 하나를 포기해야 한다는 이론.', x: 'Consistency, Availability, Partition tolerance' },
+  { id: 'eventual', c: 'arch', t: '최종 일관성', en: 'Eventual Consistency', d: '데이터가 바로 모든 곳에서 같지는 않지만, 시간이 지나면 결국 같아지는 것을 보장하는 모델.', x: '좋아요 수가 잠깐 기기마다 다르게 보임' },
+  { id: 'circuit', c: 'arch', t: '서킷 브레이커', en: 'Circuit Breaker', d: '호출하는 외부 서비스가 계속 실패하면 한동안 호출을 차단해, 장애가 연쇄로 퍼지는 것을 막는 패턴.', x: 'Closed → Open → Half-Open. Resilience4j' },
+  { id: 'async', c: 'arch', t: '동기와 비동기', en: 'Synchronous · Asynchronous', d: '작업이 끝날 때까지 기다렸다가 다음으로 가는 방식과, 기다리지 않고 다른 일을 하다가 완료 알림을 받는 방식.', x: 'async/await, 콜백, Node.js 이벤트 루프' },
+  { id: 'thread', c: 'arch', t: '프로세스와 스레드', en: 'Process · Thread', d: '메모리를 따로 가진 실행 중인 프로그램과, 한 프로그램 안에서 메모리를 공유하며 동시에 실행되는 흐름.', x: '공유 자원을 동시에 고치면 경쟁 상태(race condition) 발생 → 락으로 보호' },
+
+  // 성능·운영
+  { id: 'cache', c: 'ops', t: '캐시', en: 'Cache', d: '자주 쓰는 데이터나 계산 결과를 더 빠른 저장소에 임시로 보관해 두고 재사용하는 것.', x: '메모리, Redis, 브라우저. 요청 중 바로 찾은 비율이 적중률(hit ratio)' },
+  { id: 'ttl', c: 'ops', t: 'TTL과 캐시 무효화', en: 'Time To Live · Invalidation', d: '임시로 보관한 데이터의 유효 기간, 그리고 원본이 바뀌었을 때 오래된 사본을 지우는 일.', x: 'SET key value EX 60. 상품 정보 수정 시 해당 키 삭제' },
+  { id: 'redis', c: 'ops', t: 'Redis', en: 'In-memory Key-Value Store', d: '데이터를 메모리에 두어 매우 빠른 키-값 저장소. 캐시, 세션, 순위표, 분산 락 등에 쓴다.', x: 'GET/SET, INCR, 정렬 집합(ZSET)' },
+  { id: 'scaling', c: 'ops', t: '수평 확장과 수직 확장', en: 'Scale-out · Scale-up', d: '서버 대수를 늘려 처리량을 높이는 방법과, 서버 한 대의 CPU·메모리를 키우는 방법.', x: '무상태 웹 서버는 대수 늘리기가 쉽고, DB는 보통 사양 올리기부터' },
+  { id: 'docker', c: 'ops', t: '컨테이너', en: 'Container · Docker', d: '애플리케이션과 실행에 필요한 라이브러리·설정을 하나의 이미지로 묶어, 어디서나 같은 환경으로 실행하는 기술.', x: 'Dockerfile → docker build → docker run. 가상 머신보다 가볍다' },
+  { id: 'k8s', c: 'ops', t: '쿠버네티스', en: 'Kubernetes', d: '여러 서버에 걸쳐 컨테이너의 배포, 개수 조절, 재시작, 네트워크를 자동으로 관리하는 오케스트레이션 플랫폼.', x: 'Pod, Deployment, Service. kubectl' },
+  { id: 'cicd', c: 'ops', t: 'CI/CD', en: 'Continuous Integration · Delivery', d: '코드 변경을 자주 합치면서 자동으로 빌드·테스트하고, 통과한 결과를 자동으로 배포하는 흐름.', x: 'GitHub Actions, Jenkins. PR마다 테스트 실행' },
+  { id: 'deploy', c: 'ops', t: '무중단 배포', en: 'Blue-Green · Rolling · Canary', d: '서비스를 멈추지 않고 새 버전으로 교체하는 배포 전략.', x: '블루-그린은 새 환경으로 트래픽 전환, 카나리는 일부 사용자에게 먼저 배포' },
+  { id: 'observability', c: 'ops', t: '로깅과 모니터링', en: 'Observability', d: '로그, 지표(metric), 추적(trace)을 모아 서비스 상태를 보고 문제의 원인을 찾는 것.', x: '응답 시간 p95, 에러율 알림. Prometheus, Grafana, ELK' },
+  { id: 'health', c: 'ops', t: '헬스 체크', en: 'Health Check', d: '로드 밸런서나 오케스트레이터가 서버가 정상인지 주기적으로 확인하는 요청. 실패하면 트래픽 대상에서 뺀다.', x: 'GET /health → 200. liveness, readiness' },
+];
+
+const byId = Object.fromEntries(TERMS.map(t => [t.id, t]));
+const catName = id => (CATS.find(c => c.id === id) || {}).name || id;
+const $ = id => document.getElementById(id);
+const esc = s => String(s).replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
+const shuffle = arr => { const a = arr.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+
+/* ---------- Progress storage: account (db) when available, browser otherwise ---------- */
+const LS_KEY = 'backend-cards-progress-v1';
+const GRADUATE_STREAK = 2;
+let state = { p: {} };
+let remote = null;
+let writing = false, pendingWrite = false, writeTimer = null;
+
+try { const s = JSON.parse(localStorage.getItem(LS_KEY)); if (s && s.p) state = s; } catch (e) {}
+
+function prog(id) {
+  if (!state.p[id]) state.p[id] = { c: 0, w: 0, note: false, streak: 0, grad: 0, last: 0 };
+  return state.p[id];
+}
+function peek(id) { return state.p[id] || { c: 0, w: 0, note: false, streak: 0, grad: 0, last: 0 }; }
+
+function save() {
+  try { localStorage.setItem(LS_KEY, JSON.stringify(state)); } catch (e) {}
+  if (remote) { clearTimeout(writeTimer); writeTimer = setTimeout(flushRemote, 700); }
+}
+async function flushRemote() {
+  if (!remote) return;
+  if (writing) { pendingWrite = true; return; }
+  writing = true;
+  try {
+    await remote.set({ json: JSON.stringify(state), updatedAt: Date.now() });
+    setSaveState('계정에 저장됨 · 다른 기기에서도 이어서 학습할 수 있습니다');
+  } catch (e) {
+    if (e && e.code === 'invalid_argument') { remote = null; setSaveState('이 계정은 저장 권한이 없어 이 브라우저에만 저장됩니다'); }
+    else setSaveState('계정 저장에 실패했습니다. 이 브라우저에는 저장되어 있습니다');
+  }
+  writing = false;
+  if (pendingWrite) { pendingWrite = false; flushRemote(); }
+}
+function setSaveState(text) { $('saveState').textContent = text; }
+
+async function connectAccount() {
+  if (!window.claude || !window.claude.use) return;
+  try {
+    const [db, user] = await Promise.all([claude.use('db'), claude.use('user')]);
+    if (!db || !user) return;
+    const uid = await user.id();
+    if (!uid) return;
+    const ref = db.doc('data/users/' + uid + '/progress');
+    const snap = await ref.get();
+    if (snap.exists) {
+      const d = snap.data();
+      if (d && typeof d.json === 'string') {
+        const loaded = JSON.parse(d.json);
+        if (loaded && loaded.p) { state = loaded; try { localStorage.setItem(LS_KEY, JSON.stringify(state)); } catch (e) {} }
+      }
+    }
+    remote = ref;
+    setSaveState('계정에 저장됨 · 다른 기기에서도 이어서 학습할 수 있습니다');
+    if (!snap.exists && Object.keys(state.p).length) flushRemote();
+    renderShared();
+  } catch (e) { /* keep browser storage */ }
+}
+
+/* Record one answer. Wrong → into the note; right twice in a row while in the note → graduates. */
+function record(id, ok) {
+  const s = prog(id);
+  s.last = Date.now();
+  if (ok) {
+    s.c++;
+    if (s.note) {
+      s.streak++;
+      if (s.streak >= GRADUATE_STREAK) {
+        s.note = false; s.streak = 0; s.grad++;
+        toast(`'${byId[id].t}' 오답노트에서 졸업했습니다`);
+      }
+    }
+  } else {
+    s.w++; s.note = true; s.streak = 0;
+  }
+  save();
+  renderShared();
+}
+
+let toastTimer = null;
+function toast(text) {
+  const el = $('toast'); el.textContent = text; el.hidden = false;
+  clearTimeout(toastTimer); toastTimer = setTimeout(() => { el.hidden = true; }, 2600);
+}
+
+const noteIds = () => TERMS.filter(t => peek(t.id).note).map(t => t.id);
+
+function scopeIds(scope) {
+  if (scope === 'all') return TERMS.map(t => t.id);
+  if (scope === 'note') return noteIds();
+  if (scope === 'new') return TERMS.filter(t => { const s = peek(t.id); return s.c + s.w === 0; }).map(t => t.id);
+  return TERMS.filter(t => t.c === scope).map(t => t.id);
+}
+function scopeOptions(selected) {
+  const n = noteIds().length;
+  const opts = [['all', `전체 (${TERMS.length})`], ['note', `오답노트 (${n})`], ['new', `아직 안 본 개념 (${scopeIds('new').length})`]]
+    .concat(CATS.map(c => [c.id, `${c.name} (${scopeIds(c.id).length})`]));
+  return opts.map(([v, l]) => `<option value="${v}"${v === selected ? ' selected' : ''}>${esc(l)}</option>`).join('');
+}
+
+/* ---------- Header + shared counters ---------- */
+function renderHeader() {
+  let seen = 0, c = 0, w = 0;
+  for (const t of TERMS) { const s = peek(t.id); if (s.c + s.w) seen++; c += s.c; w += s.w; }
+  const n = noteIds().length;
+  $('sTotal').textContent = TERMS.length;
+  $('sSeen').textContent = seen;
+  $('sAcc').textContent = c + w ? Math.round(c / (c + w) * 100) + '%' : '–';
+  $('sNote').textContent = n;
+  const badge = $('noteBadge'); badge.textContent = n; badge.classList.toggle('hot', n > 0);
+}
+function renderShared() {
+  renderHeader();
+  renderLearn();
+  renderReview();
+  const cs = $('cardScope'); const v = cs.value || cardSession.scope; cs.innerHTML = scopeOptions(v);
+}
+
+/* ---------- 개념 익히기 ---------- */
+let learnCat = 'all';
+function renderChips() {
+  const list = [{ id: 'all', name: '전체' }].concat(CATS);
+  $('catChips').innerHTML = list.map(c => `<button class="chip" data-cat="${c.id}" aria-pressed="${c.id === learnCat}">${esc(c.name)}</button>`).join('');
+}
+function statusTag(id) {
+  const s = peek(id);
+  if (s.note) return `<span class="tag bad">오답노트</span>`;
+  if (s.c + s.w) return `<span class="tag ok mono">✓${s.c} ✗${s.w}</span>`;
+  return `<span class="tag cat">${esc(catName(byId[id].c))}</span>`;
+}
+function renderLearn() {
+  const q = $('q').value.trim().toLowerCase();
+  const items = TERMS.filter(t => (learnCat === 'all' || t.c === learnCat) &&
+    (!q || (t.t + ' ' + t.en + ' ' + t.d + ' ' + t.x).toLowerCase().includes(q)));
+  $('termList').innerHTML = items.length ? items.map(t => `
+    <li class="term">
+      <div class="term-head"><h3>${esc(t.t)}</h3>${statusTag(t.id)}</div>
+      <span class="en">${esc(t.en)}</span>
+      <p>${esc(t.d)}</p>
+      <p class="ex">${esc(t.x)}</p>
+    </li>`).join('') : `<li class="empty">'${esc(q)}'에 맞는 개념이 없습니다. 다른 단어로 찾아보세요.</li>`;
+}
+$('q').addEventListener('input', renderLearn);
+$('catChips').addEventListener('click', e => {
+  const b = e.target.closest('[data-cat]'); if (!b) return;
+  learnCat = b.dataset.cat; renderChips(); renderLearn();
+});
+
+/* ---------- 카드 뒤집기 ---------- */
+let cardSession = { scope: 'all', dir: 't2d', deck: [], i: 0, flipped: false, known: [], unknown: [] };
+
+function startCards(scope, ids) {
+  cardSession.scope = scope;
+  cardSession.dir = $('cardDir').value;
+  cardSession.deck = shuffle(ids || scopeIds(scope));
+  cardSession.i = 0; cardSession.flipped = false; cardSession.known = []; cardSession.unknown = [];
+  $('cardScope').innerHTML = scopeOptions(scope);
+  renderCards();
+}
+function renderCards() {
+  const s = cardSession, stage = $('cardStage');
+  if (!s.deck.length) {
+    stage.innerHTML = `<div class="empty"><p>${s.scope === 'note' ? '오답노트가 비어 있습니다. 카드나 퀴즈에서 틀린 개념이 여기에 모입니다.' : '이 범위에는 카드가 없습니다.'}</p>
+      <button class="btn" data-act="all">전체 카드로 시작</button></div>`;
+    return;
+  }
+  if (s.i >= s.deck.length) {
+    stage.innerHTML = `<div class="panel">
+      <span class="label">한 바퀴 완료</span>
+      <div class="score">알았음 ${s.known.length} · 몰랐음 ${s.unknown.length}</div>
+      <p class="muted">몰랐던 카드는 오답노트에 추가되었습니다. 오답노트에서 ${GRADUATE_STREAK}번 연속으로 맞히면 빠집니다.</p>
+      <div class="toolbar">
+        ${s.unknown.length ? `<button class="btn primary" data-act="retry">몰랐던 ${s.unknown.length}장만 다시</button>` : ''}
+        <button class="btn" data-act="again">같은 범위 다시 섞기</button>
+        <button class="btn" data-act="quiz">이 범위로 퀴즈 풀기</button>
+      </div></div>`;
+    return;
+  }
+  const t = byId[s.deck[s.i]], st = peek(t.id);
+  const termSide = `<div class="side"><span>${esc(catName(t.c))}</span><span>용어</span></div>
+      <div class="big">${esc(t.t)}</div><div class="mono muted">${esc(t.en)}</div>`;
+  const defSide = `<div class="side"><span>${esc(catName(t.c))}</span><span>설명</span></div>
+      <p class="def">${esc(t.d)}</p>`;
+  const front = s.dir === 't2d' ? termSide + `<p class="hint">설명을 떠올린 뒤 카드를 눌러 뒤집으세요 (Space)</p>`
+                                : defSide + `<p class="hint">어떤 용어인지 떠올린 뒤 카드를 눌러 뒤집으세요 (Space)</p>`;
+  const back = (s.dir === 't2d' ? defSide : termSide) + `<p class="ex">예) ${esc(t.x)}</p>`;
+  stage.innerHTML = `
+    <div style="display:flex;flex-direction:column;gap:12px">
+      <div class="card-meta">
+        <span class="label">${s.i + 1} / ${s.deck.length}</span>
+        ${st.note ? `<span class="tag bad">오답노트 · 연속 정답 ${st.streak}/${GRADUATE_STREAK}</span>` : `<span class="label">알았음 ${s.known.length} · 몰랐음 ${s.unknown.length}</span>`}
+      </div>
+      <div class="progress"><div style="width:${s.i / s.deck.length * 100}%"></div></div>
+      <button class="flip${s.flipped ? ' flipped' : ''}" id="flipCard" aria-label="카드 뒤집기">
+        <div class="flip-inner">
+          <div class="face front" aria-hidden="${s.flipped}">${front}</div>
+          <div class="face back" aria-hidden="${!s.flipped}">${back}</div>
+        </div>
+      </button>
+      <div class="answer-row">
+        <button class="btn bad" data-act="no" ${s.flipped ? '' : 'disabled'}><kbd>←</kbd> 몰랐어요</button>
+        <button class="btn ok" data-act="yes" ${s.flipped ? '' : 'disabled'}>알았어요 <kbd>→</kbd></button>
+      </div>
+    </div>`;
+}
+function flipCard() {
+  const s = cardSession; if (s.i >= s.deck.length) return;
+  s.flipped = !s.flipped;
+  const el = $('flipCard'); el.classList.toggle('flipped', s.flipped);
+  el.querySelector('.front').setAttribute('aria-hidden', s.flipped);
+  el.querySelector('.back').setAttribute('aria-hidden', !s.flipped);
+  document.querySelectorAll('#cardStage [data-act="no"], #cardStage [data-act="yes"]').forEach(b => b.disabled = !s.flipped);
+}
+function answerCard(ok) {
+  const s = cardSession; if (!s.flipped || s.i >= s.deck.length) return;
+  const id = s.deck[s.i];
+  (ok ? s.known : s.unknown).push(id);
+  record(id, ok);
+  s.i++; s.flipped = false;
+  renderCards();
+}
+$('cardStage').addEventListener('click', e => {
+  if (e.target.closest('#flipCard')) { flipCard(); return; }
+  const b = e.target.closest('[data-act]'); if (!b) return;
+  const act = b.dataset.act;
+  if (act === 'yes') answerCard(true);
+  else if (act === 'no') answerCard(false);
+  else if (act === 'retry') startCards(cardSession.scope, cardSession.unknown.slice());
+  else if (act === 'again') startCards(cardSession.scope);
+  else if (act === 'all') startCards('all');
+  else if (act === 'quiz') { quizSetup.scope = cardSession.scope; quiz.phase = 'setup'; go('quiz'); renderQuiz(); }
+});
+$('cardScope').addEventListener('change', e => startCards(e.target.value));
+$('cardDir').addEventListener('change', () => { cardSession.dir = $('cardDir').value; cardSession.flipped = false; renderCards(); });
+$('cardRestart').addEventListener('click', () => startCards($('cardScope').value));
+
+/* ---------- 퀴즈 ---------- */
+let quizSetup = { scope: 'all', type: 'mix', count: 10 };
+let quiz = { phase: 'setup', items: [], i: 0, picked: null, results: [] };
+
+function makeQuestion(id, type) {
+  const t = byId[id];
+  const mode = type === 'mix' ? (Math.random() < .5 ? 'd2t' : 't2d') : type;
+  const same = shuffle(TERMS.filter(x => x.c === t.c && x.id !== id));
+  const other = shuffle(TERMS.filter(x => x.c !== t.c));
+  const wrong = same.slice(0, 2).concat(other).slice(0, 3).map(x => x.id);
+  return { id, mode, options: shuffle([id].concat(wrong)) };
+}
+function startQuiz(ids) {
+  const pool = ids || shuffle(scopeIds(quizSetup.scope)).slice(0, quizSetup.count);
+  quiz = { phase: 'q', items: shuffle(pool).map(id => makeQuestion(id, quizSetup.type)), i: 0, picked: null, results: [] };
+  renderQuiz();
+}
+function renderQuiz() {
+  const stage = $('quizStage');
+  if (quiz.phase === 'setup') {
+    const n = scopeIds(quizSetup.scope).length;
+    stage.innerHTML = `<div class="panel">
+      <div><h2 style="font-size:var(--step-2)">4지선다 퀴즈</h2>
+      <p class="muted">틀린 문제는 오답노트에 쌓이고, 오답노트에 있던 개념을 ${GRADUATE_STREAK}번 연속 맞히면 빠집니다.</p></div>
+      <div class="setup-grid">
+        <div class="field"><label class="label" for="qScope">범위</label><select id="qScope">${scopeOptions(quizSetup.scope)}</select></div>
+        <div class="field"><label class="label" for="qType">문제 유형</label><select id="qType">
+          <option value="mix"${quizSetup.type === 'mix' ? ' selected' : ''}>섞어서</option>
+          <option value="d2t"${quizSetup.type === 'd2t' ? ' selected' : ''}>설명 보고 용어 고르기</option>
+          <option value="t2d"${quizSetup.type === 't2d' ? ' selected' : ''}>용어 보고 설명 고르기</option></select></div>
+        <div class="field"><label class="label" for="qCount">문항 수</label><select id="qCount">
+          ${[5, 10, 20].map(c => `<option value="${c}"${quizSetup.count === c ? ' selected' : ''}>${c}문제</option>`).join('')}</select></div>
+      </div>
+      <div class="toolbar"><button class="btn primary" data-q="start" ${n ? '' : 'disabled'}>퀴즈 시작 (${Math.min(n, quizSetup.count)}문제)</button>
+      ${n ? '' : '<span class="muted">이 범위에는 문제가 없습니다.</span>'}</div>
+    </div>`;
+    return;
+  }
+  if (quiz.phase === 'done') {
+    const right = quiz.results.filter(r => r.ok).length, total = quiz.results.length;
+    const wrongIds = quiz.results.filter(r => !r.ok).map(r => r.id);
+    const pct = Math.round(right / total * 100);
+    stage.innerHTML = `<div class="panel">
+      <span class="label">${pct >= 80 ? '200 OK' : pct >= 50 ? '206 Partial Content' : '400 Bad Request'}</span>
+      <div class="score">${right} / ${total}</div>
+      <p class="muted">${wrongIds.length ? `틀린 ${wrongIds.length}개는 오답노트에 추가되었습니다.` : '모두 맞혔습니다.'}</p>
+      ${wrongIds.length ? `<ul class="result-list">${wrongIds.map(id => `<li><b>${esc(byId[id].t)}</b><span class="muted">${esc(byId[id].d)}</span></li>`).join('')}</ul>` : ''}
+      <div class="toolbar">
+        ${wrongIds.length ? `<button class="btn primary" data-q="retry">틀린 문제만 다시 풀기</button>` : ''}
+        <button class="btn" data-q="setup">새 퀴즈</button>
+        <button class="btn" data-q="review">오답노트 보기</button>
+      </div></div>`;
+    quiz.wrongIds = wrongIds;
+    return;
+  }
+  const q = quiz.items[quiz.i], t = byId[q.id], answered = quiz.picked !== null;
+  const prompt = q.mode === 'd2t'
+    ? `<span class="label">이 설명에 해당하는 용어는?</span><p class="def">${esc(t.d)}</p>`
+    : `<span class="label">이 용어에 맞는 설명은?</span><div class="big">${esc(t.t)}</div><span class="mono muted">${esc(t.en)}</span>`;
+  const opts = q.options.map((oid, k) => {
+    const o = byId[oid];
+    let cls = '';
+    if (answered && oid === q.id) cls = ' right';
+    else if (answered && oid === quiz.picked) cls = ' wrong';
+    const body = q.mode === 'd2t' ? `${esc(o.t)}<small>${esc(o.en)}</small>` : esc(o.d);
+    return `<button class="opt${cls}" data-opt="${oid}" ${answered ? 'disabled' : ''}><span class="n">${k + 1}</span><span class="t">${body}</span></button>`;
+  }).join('');
+  const ok = quiz.picked === q.id;
+  const fb = answered ? `<div class="feedback ${ok ? 'ok' : 'bad'}">
+      <span class="status">${ok ? '200 OK · 정답' : '400 Bad Request · 오답'}</span>
+      <p><b>${esc(t.t)}</b> · ${esc(t.d)}</p>
+      <p class="muted">예) ${esc(t.x)}</p>
+    </div>
+    <div class="toolbar"><button class="btn primary" data-q="next" id="qNext">${quiz.i + 1 < quiz.items.length ? '다음 문제' : '결과 보기'} <kbd>Enter</kbd></button></div>` : '';
+  stage.innerHTML = `<div class="panel">
+    <div class="card-meta"><span class="label">Q ${quiz.i + 1} / ${quiz.items.length}</span>
+      <span class="label">맞힘 ${quiz.results.filter(r => r.ok).length}</span></div>
+    <div class="progress"><div style="width:${quiz.i / quiz.items.length * 100}%"></div></div>
+    <div class="q-prompt">${prompt}</div>
+    <div class="options">${opts}</div>
+    ${fb}
+  </div>`;
+  if (answered) $('qNext').focus();
+}
+function pickOption(oid) {
+  if (quiz.phase !== 'q' || quiz.picked !== null) return;
+  const q = quiz.items[quiz.i];
+  quiz.picked = oid;
+  const ok = oid === q.id;
+  quiz.results.push({ id: q.id, ok });
+  record(q.id, ok);
+  renderQuiz();
+}
+function nextQuestion() {
+  if (quiz.phase !== 'q' || quiz.picked === null) return;
+  quiz.i++; quiz.picked = null;
+  if (quiz.i >= quiz.items.length) quiz.phase = 'done';
+  renderQuiz();
+}
+$('quizStage').addEventListener('change', e => {
+  if (e.target.id === 'qScope') quizSetup.scope = e.target.value;
+  if (e.target.id === 'qType') quizSetup.type = e.target.value;
+  if (e.target.id === 'qCount') quizSetup.count = Number(e.target.value);
+  renderQuiz();
+});
+$('quizStage').addEventListener('click', e => {
+  const o = e.target.closest('[data-opt]'); if (o) { pickOption(o.dataset.opt); return; }
+  const b = e.target.closest('[data-q]'); if (!b) return;
+  const act = b.dataset.q;
+  if (act === 'start') startQuiz();
+  else if (act === 'next') nextQuestion();
+  else if (act === 'retry') startQuiz(quiz.wrongIds.slice());
+  else if (act === 'setup') { quiz.phase = 'setup'; renderQuiz(); }
+  else if (act === 'review') go('review');
+});
+
+/* ---------- 오답노트 ---------- */
+let resetArmed = false;
+function renderReview() {
+  const ids = noteIds().sort((a, b) => peek(b).w - peek(a).w || peek(b).last - peek(a).last);
+  const graduated = TERMS.filter(t => peek(t.id).grad > 0 && !peek(t.id).note).length;
+  const stage = $('reviewStage');
+  const head = `<div class="review-head">
+      <div><h2 style="font-size:var(--step-2)">오답노트 ${ids.length}개</h2>
+      <p class="muted">틀린 개념이 자주 틀린 순서로 모입니다. ${GRADUATE_STREAK}번 연속 맞히면 빠집니다${graduated ? ` · 지금까지 ${graduated}개 졸업` : ''}.</p></div>
+      ${ids.length ? `<div class="toolbar"><button class="btn primary" data-r="cards">카드로 복습</button><button class="btn" data-r="quiz">퀴즈로 복습</button></div>` : ''}
+    </div>`;
+  if (!ids.length) {
+    stage.innerHTML = head + `<div class="empty"><p>아직 틀린 개념이 없습니다. 카드에서 "몰랐어요"를 누르거나 퀴즈에서 틀리면 여기에 쌓입니다.</p>
+      <div class="toolbar"><button class="btn" data-r="go-cards">카드 뒤집기 시작</button><button class="btn" data-r="go-quiz">퀴즈 풀기</button></div></div>`;
+    return;
+  }
+  stage.innerHTML = head + `<ul class="note-list">${ids.map(id => {
+    const t = byId[id], s = peek(id);
+    const dots = Array.from({ length: GRADUATE_STREAK }, (_, k) => `<i class="${k < s.streak ? 'on' : ''}"></i>`).join('');
+    return `<li class="note"><div>
+        <h3>${esc(t.t)} <span class="tag cat">${esc(catName(t.c))}</span></h3>
+        <p>${esc(t.d)}</p>
+        <p class="muted" style="font-size:var(--step--1)">예) ${esc(t.x)}</p>
+        <span class="label">틀린 횟수 ${s.w} · 연속 정답 <span class="streak" aria-label="${s.streak}/${GRADUATE_STREAK}">${dots}</span></span>
+      </div><button class="btn" data-remove="${id}">외웠어요</button></li>`;
+  }).join('')}</ul>`;
+}
+$('reviewStage').addEventListener('click', e => {
+  const rm = e.target.closest('[data-remove]');
+  if (rm) { const s = prog(rm.dataset.remove); s.note = false; s.streak = 0; s.grad++; save(); renderShared(); toast(`'${byId[rm.dataset.remove].t}'을(를) 오답노트에서 뺐습니다`); return; }
+  const b = e.target.closest('[data-r]'); if (!b) return;
+  const act = b.dataset.r;
+  if (act === 'cards') { go('cards'); startCards('note'); }
+  else if (act === 'quiz') { quizSetup.scope = 'note'; go('quiz'); startQuiz(shuffle(noteIds()).slice(0, 20)); }
+  else if (act === 'go-cards') go('cards');
+  else if (act === 'go-quiz') go('quiz');
+});
+
+$('resetBtn').addEventListener('click', () => {
+  const b = $('resetBtn');
+  if (!resetArmed) {
+    resetArmed = true; b.textContent = '정말 초기화할까요? 한 번 더 누르면 모든 기록이 지워집니다'; b.classList.add('danger');
+    setTimeout(() => { resetArmed = false; b.textContent = '학습 기록 초기화'; b.classList.remove('danger'); }, 4000);
+    return;
+  }
+  resetArmed = false; b.textContent = '학습 기록 초기화'; b.classList.remove('danger');
+  state = { p: {} }; save(); renderShared(); startCards('all'); toast('학습 기록을 초기화했습니다');
+});
+
+/* ---------- Tabs ---------- */
+const VIEWS = ['learn', 'cards', 'quiz', 'review'];
+let current = 'learn';
+function show(view) {
+  if (!VIEWS.includes(view)) view = 'learn';
+  current = view;
+  for (const v of VIEWS) {
+    $('view-' + v).hidden = v !== view;
+    $('tab-' + v).setAttribute('aria-selected', v === view);
+  }
+}
+function go(view) {
+  show(view);
+  try { history.replaceState(null, '', '#' + view); } catch (e) {}
+}
+document.querySelector('nav').addEventListener('click', e => {
+  const b = e.target.closest('[data-view]'); if (b) go(b.dataset.view);
+});
+window.addEventListener('hashchange', () => show(location.hash.slice(1)));
+
+/* ---------- Keyboard ---------- */
+document.addEventListener('keydown', e => {
+  const tag = e.target.tagName;
+  if (tag === 'INPUT' || tag === 'SELECT' || tag === 'TEXTAREA' || e.ctrlKey || e.metaKey || e.altKey) return;
+  const onButton = tag === 'BUTTON';
+  if (current === 'cards') {
+    if (e.key === ' ' && !onButton) { e.preventDefault(); flipCard(); }
+    else if (e.key === 'ArrowRight') { e.preventDefault(); answerCard(true); }
+    else if (e.key === 'ArrowLeft') { e.preventDefault(); answerCard(false); }
+  } else if (current === 'quiz' && quiz.phase === 'q') {
+    if (quiz.picked === null && /^[1-4]$/.test(e.key)) { const q = quiz.items[quiz.i]; pickOption(q.options[Number(e.key) - 1]); }
+    else if (e.key === 'Enter' && quiz.picked !== null && !onButton) { e.preventDefault(); nextQuestion(); }
+  }
+});
+
+/* ---------- Boot ---------- */
+renderChips();
+startCards('all');
+renderQuiz();
+renderShared();
+show(location.hash.slice(1));
+connectAccount();
+</script>
+</body>
+</html>
